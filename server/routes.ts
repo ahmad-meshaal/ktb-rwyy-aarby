@@ -119,6 +119,58 @@ export async function registerRoutes(
     res.status(200).send();
   });
 
+  // === AI Chapter Content Generation ===
+  app.post(api.chapters.generateContent.path, async (req, res) => {
+    try {
+      const chapterId = Number(req.params.id);
+      const { prompt: userPrompt } = req.body;
+      
+      const chapter = await storage.getChapter(chapterId);
+      if (!chapter) return res.status(404).json({ message: "Chapter not found" });
+
+      const novel = await storage.getNovel(chapter.novelId);
+      const characters = await storage.getCharacters(chapter.novelId);
+      const prevChapters = await storage.getChapters(chapter.novelId);
+      
+      const context = prevChapters
+        .filter(c => c.orderIndex < chapter.orderIndex && c.content)
+        .slice(-2) // Last 2 chapters for context
+        .map(c => `Chapter ${c.orderIndex + 1}: ${c.title}\n${c.content?.replace(/<[^>]*>/g, '').substring(0, 500)}...`)
+        .join("\n\n");
+
+      const charList = characters.map(c => `- ${c.name} (${c.role}): ${c.description}`).join("\n");
+
+      const prompt = `Write a full novel chapter in Arabic.
+      Novel Title: ${novel?.title}
+      Chapter Title: ${chapter.title}
+      Characters:\n${charList}
+      Context from previous chapters:\n${context}
+      User Instructions: ${userPrompt || "Write a long, detailed, and engaging chapter based on the plot."}
+      
+      Requirements:
+      - Language: High-quality formal Arabic (Fusha).
+      - Style: Descriptive, literary, and professional.
+      - Ethical: Clean content, respecting religious and social values.
+      - Length: At least 1000 words.
+      - Output format: HTML (paragraphs and dialogues).`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5.1",
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      const content = response.choices[0].message.content || "";
+      
+      // Update the chapter with the generated content
+      await storage.updateChapter(chapterId, { content, status: "draft" });
+      
+      res.json({ content });
+    } catch (error) {
+      console.error("AI Generation Error:", error);
+      res.status(500).json({ message: "Failed to generate chapter content" });
+    }
+  });
+
   // === Characters ===
   app.get(api.characters.list.path, async (req, res) => {
     const chars = await storage.getCharacters(Number(req.params.novelId));

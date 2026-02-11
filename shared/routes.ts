@@ -133,6 +133,19 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    generateContent: {
+      method: 'POST' as const,
+      path: '/api/chapters/:id/generate' as const,
+      input: z.object({
+        prompt: z.string().optional(),
+      }),
+      responses: {
+        200: z.object({
+          content: z.string(),
+        }),
+        500: errorSchemas.internal,
+      },
+    },
     reorder: {
       method: 'POST' as const,
       path: '/api/novels/:novelId/chapters/reorder' as const,

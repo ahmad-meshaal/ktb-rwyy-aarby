@@ -25,7 +25,7 @@ export const chapters = pgTable("chapters", {
   title: text("title").notNull(),
   content: text("content"), // HTML or Markdown content
   orderIndex: integer("order_index").notNull(),
-  status: text("status").default("draft"), // draft, final
+  status: text("status").default("draft"), // draft, final, generating
   createdAt: timestamp("created_at").defaultNow(),
 });
 
