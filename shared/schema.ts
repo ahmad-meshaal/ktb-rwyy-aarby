@@ -3,6 +3,9 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Export chat models
+export * from "./models/chat";
+
 // === TABLE DEFINITIONS ===
 
 export const novels = pgTable("novels", {
